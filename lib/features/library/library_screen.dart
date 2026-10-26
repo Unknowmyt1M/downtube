@@ -279,7 +279,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             : ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: controller.items.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                separatorBuilder: (context, index) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final item = controller.items[index];
                   final isAvailable =

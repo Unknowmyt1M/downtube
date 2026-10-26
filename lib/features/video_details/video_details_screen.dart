@@ -230,7 +230,7 @@ class VideoDetailsScreen extends StatelessWidget {
                     Image.network(
                       video.thumbnailUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(
+                      errorBuilder: (context, error, stackTrace) => Container(
                         color: AppColors.secondaryBackground,
                         alignment: Alignment.center,
                         child: const Icon(

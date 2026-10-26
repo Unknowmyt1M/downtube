@@ -247,7 +247,7 @@ class DownloadsScreen extends StatelessWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: tasks.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                separatorBuilder: (context, index) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final task = tasks[index];
                   return _buildTaskCard(context, task, controller);
