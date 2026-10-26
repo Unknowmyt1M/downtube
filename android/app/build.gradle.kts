@@ -26,6 +26,15 @@ android {
         }
     }
 
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+            keepDebugSymbols.add("**/libffmpeg.zip.so")
+            keepDebugSymbols.add("**/libpython.zip.so")
+            keepDebugSymbols.add("**/*.so")
+        }
+    }
+
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
