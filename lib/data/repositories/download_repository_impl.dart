@@ -5,6 +5,7 @@ import '../../domain/entities/download_task.dart';
 import '../../domain/repositories/download_repository.dart';
 import '../../domain/repositories/media_library_repository.dart';
 import '../services/direct_download_provider.dart';
+import '../services/yt_dlp_download_provider.dart';
 import '../storage/app_storage.dart';
 
 class DownloadRepositoryImpl implements DownloadRepository {
@@ -20,7 +21,8 @@ class DownloadRepositoryImpl implements DownloadRepository {
     List<DownloadProvider>? providers,
   }) : _storage = storage,
        _mediaLibraryRepository = mediaLibraryRepository,
-       _providers = providers ?? [DirectFileDownloadProvider()];
+       _providers =
+           providers ?? [YtDlpDownloadProvider(), DirectFileDownloadProvider()];
 
   @override
   List<DownloadProvider> get providers => List.unmodifiable(_providers);
@@ -46,8 +48,7 @@ class DownloadRepositoryImpl implements DownloadRepository {
     final provider = _getProviderForUrl(url);
     if (provider == null) {
       throw const UnsupportedSourceFailure(
-        'Direct download extraction is not supported for this source. '
-        'YouTube videos must be played via the integrated player in accordance with official platform terms.',
+        'Direct download extraction is not supported for this source.',
       );
     }
 

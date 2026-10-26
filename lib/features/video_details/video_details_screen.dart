@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/entities/youtube_video.dart';
 import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/status_badge.dart';
+import '../downloads/downloads_controller.dart';
 import '../player/youtube_player_screen.dart';
 
 class VideoDetailsScreen extends StatelessWidget {
@@ -50,16 +52,16 @@ class VideoDetailsScreen extends StatelessWidget {
     }
   }
 
-  void _showAuthorizedDownloadNotice(BuildContext context) {
+  void _showDownloadQualitySheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.cardSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,46 +71,128 @@ class VideoDetailsScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.warning.withValues(alpha: 0.15),
+                      color: AppColors.primaryAccent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
-                      Icons.info_outline_rounded,
-                      color: AppColors.warning,
-                      size: 20,
+                      Icons.download_rounded,
+                      color: AppColors.primaryAccent,
+                      size: 22,
                     ),
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    'Download Policy Notice',
+                    'yt-dlp + FFmpeg Download',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 17,
                       fontWeight: FontWeight.w700,
                       color: AppColors.primaryText,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-              const Text(
-                'DownTube adheres strictly to authorized media practices and platform terms of service. '
-                'Arbitrary YouTube video extraction is intentionally not supported to ensure compliance with YouTube policies.\n\n'
-                'You can stream this video using the integrated compliant player or open it directly in the YouTube app.',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: AppColors.secondaryText,
-                  height: 1.4,
-                ),
+              const SizedBox(height: 16),
+              _buildQualityOption(
+                context: context,
+                sheetContext: sheetContext,
+                title: 'Best Video (1080p / 4K)',
+                subtitle: 'Merged audio + video stream via local FFmpeg',
+                icon: Icons.high_quality_rounded,
               ),
-              const SizedBox(height: 20),
-              AppButton(
-                label: 'Understood',
-                onPressed: () => Navigator.of(context).pop(),
+              const SizedBox(height: 8),
+              _buildQualityOption(
+                context: context,
+                sheetContext: sheetContext,
+                title: 'Standard (720p MP4)',
+                subtitle: 'Fast single-stream download',
+                icon: Icons.video_file_rounded,
+              ),
+              const SizedBox(height: 8),
+              _buildQualityOption(
+                context: context,
+                sheetContext: sheetContext,
+                title: 'Audio Only (M4A)',
+                subtitle: 'High bitrate audio track',
+                icon: Icons.audiotrack_rounded,
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildQualityOption({
+    required BuildContext context,
+    required BuildContext sheetContext,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+  }) {
+    return AppCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      onTap: () async {
+        Navigator.of(sheetContext).pop();
+        try {
+          final downloadsController = context.read<DownloadsController>();
+          await downloadsController.startDownload(
+            video.originalUrl,
+            preferredName: '${video.title}.mp4',
+          );
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'yt-dlp download started! Track progress in Downloads tab.',
+                ),
+                backgroundColor: AppColors.cardSurfaceLight,
+              ),
+            );
+          }
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Download failed to start: $e'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+        }
+      },
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.accentHighlight, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: AppColors.primaryText,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.secondaryText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 14,
+            color: AppColors.secondaryText,
+          ),
+        ],
+      ),
     );
   }
 
@@ -300,7 +384,7 @@ class VideoDetailsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'Playback & Options',
+                    'Actions & Downloader',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -309,8 +393,15 @@ class VideoDetailsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   AppButton(
+                    label: 'Download Video (yt-dlp + FFmpeg)',
+                    icon: Icons.download_rounded,
+                    onPressed: () => _showDownloadQualitySheet(context),
+                  ),
+                  const SizedBox(height: 10),
+                  AppButton(
                     label: 'Play In-App (Integrated Player)',
                     icon: Icons.play_circle_filled_rounded,
+                    variant: AppButtonVariant.secondary,
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -324,15 +415,8 @@ class VideoDetailsScreen extends StatelessWidget {
                   AppButton(
                     label: 'Open in YouTube App',
                     icon: Icons.open_in_new_rounded,
-                    variant: AppButtonVariant.secondary,
-                    onPressed: () => _openInYouTubeApp(context),
-                  ),
-                  const SizedBox(height: 10),
-                  AppButton(
-                    label: 'Download Status & Capabilities',
-                    icon: Icons.info_outline_rounded,
                     variant: AppButtonVariant.outline,
-                    onPressed: () => _showAuthorizedDownloadNotice(context),
+                    onPressed: () => _openInYouTubeApp(context),
                   ),
                 ],
               ),
